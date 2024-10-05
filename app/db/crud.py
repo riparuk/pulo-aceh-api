@@ -78,16 +78,25 @@ def get_admin_by_username(db: Session, username: str):
     return db.query(Admin).filter(Admin.username == username).first()
 
 def create_admin(db: Session, admin: AdminCreate):
+    hashed_pw = hash_password(admin.password)
     db_admin = Admin(
         name=admin.name,
         username=admin.username,
-        hashed_password=admin.hashed_password,
+        hashed_password=hashed_pw,
         is_active=admin.is_active
     )
     db.add(db_admin)
     db.commit()
     db.refresh(db_admin)
     return db_admin
+
+def authenticate_admin(db: Session, username: str, password: str):
+    admin = db.query(Admin).filter(Admin.username == username).first()
+    if not admin:
+        return False
+    if not verify_password(password, admin.hashed_password):
+        return False
+    return admin
 
 def update_admin(db: Session, admin_id: int, admin: AdminUpdate):
     db_admin = db.query(Admin).filter(Admin.id == admin_id).first()
