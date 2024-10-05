@@ -21,7 +21,7 @@ class PlaceBase(BaseModel):
 
 class UserCreate(UserBase):
     email: EmailStr
-    hashed_password: str
+    password: str
 
 class UserUpdate(UserBase):
     name: Optional[str] = None
@@ -45,7 +45,7 @@ class AdminBase(BaseModel):
 
 class AdminCreate(AdminBase):
     username: str
-    hashed_password: str
+    password: str
 
 class AdminUpdate(AdminBase):
     name: Optional[str] = None

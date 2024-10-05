@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from .models import User, Admin, Place, user_place_association
 from .schemas import UserCreate, AdminCreate, PlaceCreate, UserUpdate, AdminUpdate, PlaceUpdate
+from .utils import hash_password, verify_password
 from typing import List, Optional
 
 # ------------------ CRUD User ------------------
@@ -15,10 +16,11 @@ def get_users(db: Session, skip: int = 0, limit: int = 10):
     return db.query(User).offset(skip).limit(limit).all()
 
 def create_user(db: Session, user: UserCreate):
+    hashed_pw = hash_password(user.password)
     db_user = User(
         name=user.name,
         email=user.email,
-        hashed_password=user.hashed_password,
+        hashed_password=hashed_pw,
         is_active=user.is_active,
         photo_url=user.photo_url
     )
@@ -26,6 +28,14 @@ def create_user(db: Session, user: UserCreate):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def authenticate_user(db: Session, email: str, password: str):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
+    return user
 
 def update_user(db: Session, user_id: int, user: UserUpdate):
     db_user = db.query(User).filter(User.id == user_id).first()

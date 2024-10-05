@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.db.schemas import UserCreate, UserResponse, UserUpdate
-from app.db.crud import get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, save_place_to_user
+from app.db.crud import authenticate_user, get_user_by_id, get_user_by_email, get_users, create_user, update_user, delete_user, save_place_to_user
 from app.db.database import get_db
 
 router = APIRouter(
@@ -28,15 +28,26 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
 
-# ------------------ Create New User ------------------
-
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def create_new_user(user: UserCreate, db: Session = Depends(get_db)):
+# ------------------ Register New User ------------------
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = get_user_by_email(db=db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
     return create_user(db=db, user=user)
+
+# ------------------ Login User ------------------
+@router.post("/login")
+def login(email: str, password: str, db: Session = Depends(get_db)):
+    user = authenticate_user(db, email, password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return {"message": "Login successful"}
 
 # ------------------ Update User ------------------
 
