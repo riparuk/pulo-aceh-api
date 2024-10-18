@@ -1,8 +1,15 @@
-# Smeltub-API
-API System for Collecting Gas Data Sensor
+# Pulo Aceh API
+API System for Pulo Aceh Destination
+
+## Quick Guide
+
+- Register at `/users/auth/register`. To register as an admin, include `"is_admin": true`.
+- Only admins can view sensitive data or add data such as places.
+- Start login by clicking the authorize button at the top right of the Swagger API for easy access to other endpoints (automatically adds access token to the header).
+- Edit the token (result from `/users/auth/login`) in `dummy.py` and run it to easily create fake place data.
 
 ## Installation
-To install and run the Smeltub-API project, follow these steps:
+To install and run the API project, follow these steps:
 
 1. Clone the repository to your local machine:
 
