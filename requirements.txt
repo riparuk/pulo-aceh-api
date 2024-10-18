@@ -4,3 +4,4 @@ passlib==1.7.4
 pydantic==2.9.2
 python-dotenv==1.0.1
 SQLAlchemy==2.0.30
+PyJWT==2.8.0
