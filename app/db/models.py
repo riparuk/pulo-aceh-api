@@ -16,19 +16,10 @@ class User(Base):
     name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
     photo_url = Column(String, nullable=True)
 
     saved_places = relationship('Place', secondary=user_place_association, back_populates='users')
-    
-class Admin(Base):
-    __tablename__ = "admins"
-    
-    id = Column(Integer, primary_key=True)
-    name = Column(String, index=True)
-    username = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    is_active = Column(Boolean, default=True)
     
     
 class Place(Base):

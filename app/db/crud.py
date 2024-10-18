@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from .models import User, Admin, Place, user_place_association
-from .schemas import UserCreate, AdminCreate, PlaceCreate, UserUpdate, AdminUpdate, PlaceUpdate
+from .models import User, Place, user_place_association
+from .schemas import UserCreate, PlaceCreate, UserUpdate, PlaceUpdate
 from .utils import hash_password, verify_password
 from typing import List, Optional
 
@@ -21,8 +21,8 @@ def create_user(db: Session, user: UserCreate):
         name=user.name,
         email=user.email,
         hashed_password=hashed_pw,
-        is_active=user.is_active,
-        photo_url=user.photo_url
+        photo_url=user.photo_url,
+        is_admin=user.is_admin
     )
     db.add(db_user)
     db.commit()
@@ -42,7 +42,7 @@ def update_user(db: Session, user_id: int, user: UserUpdate):
     if db_user:
         db_user.name = user.name or db_user.name
         db_user.email = user.email or db_user.email
-        db_user.is_active = user.is_active if user.is_active is not None else db_user.is_active
+        db_user.is_admin = user.is_admin if user.is_admin is not None else db_user.is_admin
         db_user.photo_url = user.photo_url or db_user.photo_url
         db.commit()
         db.refresh(db_user)
@@ -69,61 +69,31 @@ def save_place_to_user(db: Session, user_id: int, place_id: int):
         return user
     return {"message": "User or place not found."}
 
-# ------------------ CRUD Admin ------------------
-
-def get_admin_by_id(db: Session, admin_id: int):
-    return db.query(Admin).filter(Admin.id == admin_id).first()
-
-def get_admin_by_username(db: Session, username: str):
-    return db.query(Admin).filter(Admin.username == username).first()
-
-def create_admin(db: Session, admin: AdminCreate):
-    hashed_pw = hash_password(admin.password)
-    db_admin = Admin(
-        name=admin.name,
-        username=admin.username,
-        hashed_password=hashed_pw,
-        is_active=admin.is_active
-    )
-    db.add(db_admin)
-    db.commit()
-    db.refresh(db_admin)
-    return db_admin
-
-def authenticate_admin(db: Session, username: str, password: str):
-    admin = db.query(Admin).filter(Admin.username == username).first()
-    if not admin:
-        return False
-    if not verify_password(password, admin.hashed_password):
-        return False
-    return admin
-
-def update_admin(db: Session, admin_id: int, admin: AdminUpdate):
-    db_admin = db.query(Admin).filter(Admin.id == admin_id).first()
-    if db_admin:
-        db_admin.name = admin.name or db_admin.name
-        db_admin.username = admin.username or db_admin.username
-        db_admin.is_active = admin.is_active if admin.is_active is not None else db_admin.is_active
+def unsave_place_from_user(db: Session, user_id: int, place_id: int):
+    user = db.query(User).filter(User.id == user_id).first()
+    place = db.query(Place).filter(Place.id == place_id).first()
+    if user and place:
+        # Check if the place is saved by the user
+        if place not in user.saved_places:
+            return {"message": "Place not found in user's saved list."}
+        
+        # If saved, remove the place and commit the transaction
+        user.saved_places.remove(place)
         db.commit()
-        db.refresh(db_admin)
-    return db_admin
-
-def delete_admin(db: Session, admin_id: int):
-    db_admin = db.query(Admin).filter(Admin.id == admin_id).first()
-    if db_admin:
-        db.delete(db_admin)
-        db.commit()
-    return db_admin
+        return user
+    return {"message": "User or place not found."}
 
 # ------------------ CRUD Place ------------------
 
 def get_place_by_id(db: Session, place_id: int):
     return db.query(Place).filter(Place.id == place_id).first()
 
-def get_places(db: Session, skip: int = 0, limit: int = 10, search: Optional[str] = None):
+def get_places(db: Session, skip: int = 0, limit: int = 10, search: Optional[str] = None, min_rating: Optional[float] = None):
     query = db.query(Place)
     if search:
         query = query.filter(Place.name.ilike(f'%{search}%'))
+    if min_rating is not None:
+        query = query.filter(Place.rating >= min_rating)
     return query.offset(skip).limit(limit).all()
 
 def create_place(db: Session, place: PlaceCreate):
