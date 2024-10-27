@@ -101,7 +101,7 @@ To run the API project using Docker, follow these steps:
     - [ ] Daftar/Lupa Password dengan OTP
     - [ ] User bisa Ubah password
     - [ ] User bisa Ubah email OTP ke Email baru
-    - [ ] Upload gambar untuk update profile 
+    - [X] Upload gambar untuk update profile 
     - [ ] Upload gambar tempat wisata 
     - [ ] Depend login atau belum saat akses endpoint masih bug/bad logic (harus login jika butuh get_current_user, tidak bisa hanya token/key)
     - [ ] User belum bisa kirim rating
