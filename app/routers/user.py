@@ -1,14 +1,15 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 
 from app.auth.jwt import ACCESS_TOKEN_EXPIRE_MINUTES, Token, create_access_token, get_current_user
 from app.db.schemas import UserCreate, UserResponse, UserUpdate
-from app.db.crud import authenticate_user, get_user_by_id, get_user_by_email, get_users, create_user, unsave_place_from_user, update_user, delete_user, save_place_to_user
+from app.db.crud import authenticate_user, get_user_by_id, get_user_by_email, get_users, create_user, unsave_place_from_user, update_user, delete_user, save_place_to_user, update_user_photo
 from app.db.database import get_db
 from app.dependencies import SECRET_KEY, get_query_token
+
 
 router = APIRouter(
     prefix="/users",
@@ -76,6 +77,23 @@ async def get_current_user(
     current_user: Annotated[UserResponse, Depends(get_current_user)],
 ):
     return current_user
+
+# ------------------ Update User Profile Photo ------------------
+
+@router.put("/auth/me/photo", response_model=UserResponse)
+async def update_profile_photo(
+    photo: Annotated[UploadFile, File(description="A File containing an image")],
+    current_user: Annotated[UserResponse, Depends(get_current_user)],
+    db: Session = Depends(get_db)
+):
+
+    db_user = get_user_by_id(db=db, user_id=current_user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Assuming you have a function to handle photo update
+    updated_user = update_user_photo(db=db, user_id=current_user.id, photo=photo)
+    return updated_user
 
 # ------------------ Update User ------------------
 

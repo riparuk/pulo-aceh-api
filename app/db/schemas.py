@@ -5,11 +5,9 @@ from typing import Optional, List
 # ------------------ User Schemas ------------------
 
 class UserBase(BaseModel):
-    id: int
     name: str
     email: EmailStr
-    is_admin: Optional[bool] = False
-    photo_url: Optional[str] = None
+    is_admin: bool
     
 class PlaceBase(BaseModel):
     name: Optional[str] = None
@@ -27,9 +25,10 @@ class UserUpdate(UserBase):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     is_admin: Optional[bool] = None
-    photo_url: Optional[str] = None
 
 class UserResponse(UserBase):
+    id: int
+    photo_url: str
     saved_places: Optional[List[PlaceBase]] = []
 
     class Config:

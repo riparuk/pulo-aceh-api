@@ -1,8 +1,11 @@
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 from .models import User, Place, user_place_association
 from .schemas import UserCreate, PlaceCreate, UserUpdate, PlaceUpdate
 from .utils import hash_password, verify_password
 from typing import List, Optional
+import uuid
+from pathlib import Path
 
 # ------------------ CRUD User ------------------
 
@@ -44,6 +47,48 @@ def update_user(db: Session, user_id: int, user: UserUpdate):
         db_user.email = user.email or db_user.email
         db_user.is_admin = user.is_admin if user.is_admin is not None else db_user.is_admin
         db_user.photo_url = user.photo_url or db_user.photo_url
+        db.commit()
+        db.refresh(db_user)
+    return db_user
+
+def store_photo(photo: bytes) -> str:
+    # Generate a unique filename
+    filename = f"{uuid.uuid4()}.jpg"
+    # Define the path where the photo will be stored in the static directory
+    photo_path = Path("static/photos") / filename
+
+    # Ensure the directory exists
+    photo_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Write the photo to the file
+    with open(photo_path, "wb") as f:
+        f.write(photo)
+
+    # Return the URL or path to the stored photo
+    return str(photo_path)
+
+def delete_photo(photo_url: str) -> bool:
+    photo_path = Path(photo_url)
+    if photo_path.exists():
+        photo_path.unlink()
+        return True
+    return False
+
+def update_user_photo(db: Session, user_id: int, photo: UploadFile):
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if db_user:
+        # Read the photo file
+        photo_bytes = photo.file.read()
+        
+        # Store the new photo and get the URL
+        new_photo_url = store_photo(photo_bytes)
+        
+        # Delete the old photo if it exists
+        if db_user.photo_url:
+            delete_photo(db_user.photo_url)
+        
+        # Update the user's photo URL
+        db_user.photo_url = new_photo_url
         db.commit()
         db.refresh(db_user)
     return db_user
