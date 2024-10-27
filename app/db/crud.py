@@ -24,7 +24,6 @@ def create_user(db: Session, user: UserCreate):
         name=user.name,
         email=user.email,
         hashed_password=hashed_pw,
-        photo_url=user.photo_url,
         is_admin=user.is_admin
     )
     db.add(db_user)
@@ -46,7 +45,6 @@ def update_user(db: Session, user_id: int, user: UserUpdate):
         db_user.name = user.name or db_user.name
         db_user.email = user.email or db_user.email
         db_user.is_admin = user.is_admin if user.is_admin is not None else db_user.is_admin
-        db_user.photo_url = user.photo_url or db_user.photo_url
         db.commit()
         db.refresh(db_user)
     return db_user
