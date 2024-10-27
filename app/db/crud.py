@@ -170,6 +170,25 @@ def update_place(db: Session, place_id: int, place: PlaceUpdate):
         db.refresh(db_place)
     return db_place
 
+def update_place_image(db: Session, place_id: int, image: UploadFile):
+    db_place = db.query(Place).filter(Place.id == place_id).first()
+    if db_place:
+        # Read the image file
+        image_bytes = image.file.read()
+        
+        # Store the new image and get the URL
+        new_image_url = store_photo(image_bytes)
+        
+        # Delete the old image if it exists
+        if db_place.image_url:
+            delete_photo(db_place.image_url)
+        
+        # Update the place's image URL
+        db_place.image_url = new_image_url
+        db.commit()
+        db.refresh(db_place)
+    return db_place
+
 def delete_place(db: Session, place_id: int):
     db_place = db.query(Place).filter(Place.id == place_id).first()
     if db_place:

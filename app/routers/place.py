@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 
 from app.auth.jwt import get_current_user
 from app.db.schemas import PlaceCreate, PlaceResponse, PlaceUpdate, UserResponse
-from app.db.crud import get_place_by_id, get_places, create_place, update_place, delete_place
+from app.db.crud import get_place_by_id, get_places, create_place, update_place, delete_place, update_place_image
 from app.db.database import get_db
 from app.dependencies import SECRET_KEY
 from geopy.distance import geodesic
@@ -70,6 +70,26 @@ def update_existing_place(current_user: Annotated[UserResponse, Depends(get_curr
         raise HTTPException(status_code=404, detail="Place not found")
     
     return update_place(db=db, place_id=place_id, place=place)
+
+# ------------------ Update Place Image ------------------
+
+@router.put("/{place_id}/image", response_model=PlaceResponse)
+def update_image_place(
+    current_user: Annotated[UserResponse, Depends(get_current_user)],
+    place_id: int,
+    image: Annotated[UploadFile, File(description="A File containing an image")],
+    db: Session = Depends(get_db),
+    secret_key: str = None
+):
+    if secret_key != SECRET_KEY and current_user.is_admin == False:
+        raise HTTPException(status_code=403, detail="Invalid secret key for admin registration and unauthorized user")
+    
+    db_place = get_place_by_id(db=db, place_id=place_id)
+    if db_place is None:
+        raise HTTPException(status_code=404, detail="Place not found")
+    
+    updated_place = update_place_image(db=db, place_id=place_id, image=image)
+    return updated_place
 
 # ------------------ Delete Place ------------------
 
