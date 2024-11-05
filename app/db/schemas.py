@@ -26,8 +26,13 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
-    is_admin: Optional[bool] = None
     is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
+    
+class UserUpdateProfile(BaseModel):
+    name: Optional[str] = None
+    photo_url: Optional[str] = None
+    is_admin: Optional[bool] = None
 
 class UserResponse(UserBase):
     id: int

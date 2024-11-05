@@ -6,7 +6,7 @@ from typing import Annotated, List
 
 from app.auth.jwt import ACCESS_TOKEN_EXPIRE_MINUTES, Token, create_access_token, get_current_active_user
 from app.routers.otp import send_otp
-from app.db.schemas import UserCreate, UserResponse, UserUpdate
+from app.db.schemas import UserCreate, UserResponse, UserUpdate, UserUpdateProfile
 from app.db.crud import authenticate_user, get_user_by_id, get_user_by_email, get_users, create_user, unsave_place_from_user, update_user, delete_user, save_place_to_user, update_user_photo, verify_otp_by_email
 from app.db.database import get_db
 from app.dependencies import SECRET_KEY
@@ -77,6 +77,23 @@ def register(user: UserCreate, db: Session = Depends(get_db), secret_key: str = 
     except HTTPException as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
+# ------------------ change Password ------------------
+@router.post("/auth/change-password")
+def change_password(email: str, new_password: str, otp: str, db: Session = Depends(get_db)):
+    try:
+        is_verified = verify_otp_by_email(db, email, otp)
+        
+        if not is_verified:
+            raise HTTPException(status_code=400, detail="Invalid OTP")
+        
+        user = get_user_by_email(db=db, email=email)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return update_user(db=db, user_id=user.id, user=UserUpdate(password=new_password))
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    
 # ------------------ Login User ------------------
 @router.post("/auth/login", response_model=Token)
 async def login_for_access_token(
@@ -123,7 +140,7 @@ async def update_profile_photo(
 # ------------------ Update User ------------------
 
 @router.put("/auth/me/update", response_model=UserResponse)
-def update_current_user(user: UserUpdate, current_user: Annotated[UserResponse, Depends(get_current_active_user)], db: Session = Depends(get_db), secret_key: str = None):
+def update_current_user(user: UserUpdateProfile, current_user: Annotated[UserResponse, Depends(get_current_active_user)], db: Session = Depends(get_db), secret_key: str = None):
     if user.is_admin:
         if secret_key != SECRET_KEY:
             raise HTTPException(status_code=403, detail="Invalid secret key for admin editing")
@@ -132,7 +149,7 @@ def update_current_user(user: UserUpdate, current_user: Annotated[UserResponse, 
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     
-    return update_user(db=db, user_id=current_user.id, user=user)
+    return update_user(db=db, user_id=current_user.id, user=UserUpdate(**user.model_dump()))
 
 # ------------------ Delete User ------------------
 

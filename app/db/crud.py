@@ -47,6 +47,7 @@ def update_user(db: Session, user_id: int, user: UserUpdate):
         db_user.email = user.email or db_user.email
         db_user.is_admin = user.is_admin if user.is_admin is not None else db_user.is_admin
         db_user.is_active = user.is_active if user.is_active is not None else db_user.is_active
+        db_user.hashed_password = hash_password(user.password) if user.password else db_user.hashed_password
         db.commit()
         db.refresh(db_user)
     return db_user
