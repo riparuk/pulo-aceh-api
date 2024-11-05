@@ -97,8 +97,9 @@ To run the API project using Docker, follow these steps:
     ## Checklist
 
     - [x] JWT Done
-    - [ ] OTP
-    - [ ] Daftar/Lupa Password dengan OTP
+    - [x] OTP
+    - [x] Register akun dengan OTP
+    - [ ] Lupa Password dengan OTP
     - [ ] User bisa Ubah password
     - [ ] User bisa Ubah email OTP ke Email baru
     - [X] Upload gambar untuk update profile 

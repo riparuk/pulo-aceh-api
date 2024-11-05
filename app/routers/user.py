@@ -4,11 +4,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 
-from app.auth.jwt import ACCESS_TOKEN_EXPIRE_MINUTES, Token, create_access_token, get_current_user
+from app.auth.jwt import ACCESS_TOKEN_EXPIRE_MINUTES, Token, create_access_token, get_current_active_user
+from app.routers.otp import send_otp
 from app.db.schemas import UserCreate, UserResponse, UserUpdate
-from app.db.crud import authenticate_user, get_user_by_id, get_user_by_email, get_users, create_user, unsave_place_from_user, update_user, delete_user, save_place_to_user, update_user_photo
+from app.db.crud import authenticate_user, get_user_by_id, get_user_by_email, get_users, create_user, unsave_place_from_user, update_user, delete_user, save_place_to_user, update_user_photo, verify_otp_by_email
 from app.db.database import get_db
-from app.dependencies import SECRET_KEY, get_query_token
+from app.dependencies import SECRET_KEY
 
 
 router = APIRouter(
@@ -20,7 +21,7 @@ router = APIRouter(
 # ------------------ Get List of Users ------------------
 
 @router.get("/", response_model=List[UserResponse])
-def read_users(current_user: Annotated[UserResponse, Depends(get_current_user)], skip: int = 0, limit: int = 10, db: Session = Depends(get_db), secret_key: str = None):
+def read_users(current_user: Annotated[UserResponse, Depends(get_current_active_user)], skip: int = 0, limit: int = 10, db: Session = Depends(get_db), secret_key: str = None):
     if secret_key != SECRET_KEY and current_user.is_admin == False:
         raise HTTPException(status_code=403, detail="Invalid secret key for admin registration and unauthorized user")
         
@@ -30,7 +31,7 @@ def read_users(current_user: Annotated[UserResponse, Depends(get_current_user)],
 # ------------------ Get User by ID ------------------
 
 @router.get("/{user_id}", response_model=UserResponse)
-def read_user(current_user: Annotated[UserResponse, Depends(get_current_user)], user_id: int, db: Session = Depends(get_db), secret_key: str = None):
+def read_user(current_user: Annotated[UserResponse, Depends(get_current_active_user)], user_id: int, db: Session = Depends(get_db), secret_key: str = None):
     if secret_key != SECRET_KEY and current_user.is_admin == False:
         raise HTTPException(status_code=403, detail="Invalid secret key for admin registration and unauthorized user")
     
@@ -39,8 +40,27 @@ def read_user(current_user: Annotated[UserResponse, Depends(get_current_user)], 
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
 
+# ------------------ Verify OTP ------------------
+@router.post("/auth/register/verify-otp", status_code=status.HTTP_201_CREATED)
+def verify_email_otp(email: str, otp: str, db: Session = Depends(get_db)):
+    try:
+        is_verified = verify_otp_by_email(db, email, otp)
+        
+        if not is_verified:
+            raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+        user = get_user_by_email(db=db, email=email)
+        print(user)
+        
+        # Activate the user
+        update_user(db=db, user_id=user.id, user=UserUpdate(is_active=True))
+        
+        return {"message": "User verified successfully"}
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    
 # ------------------ Register New User ------------------
-@router.post("/auth/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/auth/register", status_code=status.HTTP_201_CREATED)
 def register(user: UserCreate, db: Session = Depends(get_db), secret_key: str = None):
     if user.is_admin:
         if secret_key != SECRET_KEY:
@@ -50,7 +70,12 @@ def register(user: UserCreate, db: Session = Depends(get_db), secret_key: str = 
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    return create_user(db=db, user=user)
+    try:
+        send_otp(email=user.email, db=db)
+        create_user(db=db, user=user)
+        return {"message": "Kode OTP telah dikirim ke email"}
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
 # ------------------ Login User ------------------
 @router.post("/auth/login", response_model=Token)
@@ -74,7 +99,7 @@ async def login_for_access_token(
 # ------------------ Get User Profile ------------------
 @router.get("/auth/me", response_model=UserResponse)
 async def get_current_user(
-    current_user: Annotated[UserResponse, Depends(get_current_user)],
+    current_user: Annotated[UserResponse, Depends(get_current_active_user)],
 ):
     return current_user
 
@@ -83,7 +108,7 @@ async def get_current_user(
 @router.put("/auth/me/photo", response_model=UserResponse)
 async def update_profile_photo(
     photo: Annotated[UploadFile, File(description="A File containing an image")],
-    current_user: Annotated[UserResponse, Depends(get_current_user)],
+    current_user: Annotated[UserResponse, Depends(get_current_active_user)],
     db: Session = Depends(get_db)
 ):
 
@@ -98,7 +123,7 @@ async def update_profile_photo(
 # ------------------ Update User ------------------
 
 @router.put("/auth/me/update", response_model=UserResponse)
-def update_current_user(user: UserUpdate, current_user: Annotated[UserResponse, Depends(get_current_user)], db: Session = Depends(get_db), secret_key: str = None):
+def update_current_user(user: UserUpdate, current_user: Annotated[UserResponse, Depends(get_current_active_user)], db: Session = Depends(get_db), secret_key: str = None):
     if user.is_admin:
         if secret_key != SECRET_KEY:
             raise HTTPException(status_code=403, detail="Invalid secret key for admin editing")
@@ -112,7 +137,7 @@ def update_current_user(user: UserUpdate, current_user: Annotated[UserResponse, 
 # ------------------ Delete User ------------------
 
 @router.delete("/{user_id}", response_model=UserResponse)
-def delete_existing_user(current_user: Annotated[UserResponse, Depends(get_current_user)], user_id: int, db: Session = Depends(get_db), secret_key: str = None):
+def delete_existing_user(current_user: Annotated[UserResponse, Depends(get_current_active_user)], user_id: int, db: Session = Depends(get_db), secret_key: str = None):
     if secret_key != SECRET_KEY and current_user.is_admin == False:
         raise HTTPException(status_code=403, detail="Invalid secret key for admin registration and unauthorized user")
     
@@ -125,7 +150,7 @@ def delete_existing_user(current_user: Annotated[UserResponse, Depends(get_curre
 # ------------------ Save Place to User ------------------
 
 @router.post("/save/{place_id}")
-def save_place_to_current_user(place_id: int, current_user: Annotated[UserResponse, Depends(get_current_user)], db: Session = Depends(get_db)):
+def save_place_to_current_user(place_id: int, current_user: Annotated[UserResponse, Depends(get_current_active_user)], db: Session = Depends(get_db)):
     result  = save_place_to_user(db=db, user_id=current_user.id, place_id=place_id)
     if isinstance(result, dict):
         # Jika result adalah dictionary, kita kembalikan pesan yang sesuai
@@ -136,7 +161,7 @@ def save_place_to_current_user(place_id: int, current_user: Annotated[UserRespon
 # ------------------ Unsave Place from User ------------------
 
 @router.delete("/unsave/{place_id}")
-def unsave_place_from_current_user(place_id: int, current_user: Annotated[UserResponse, Depends(get_current_user)], db: Session = Depends(get_db)):
+def unsave_place_from_current_user(place_id: int, current_user: Annotated[UserResponse, Depends(get_current_active_user)], db: Session = Depends(get_db)):
     result = unsave_place_from_user(db=db, user_id=current_user.id, place_id=place_id)
     if isinstance(result, dict):
         # Jika result adalah dictionary, kita kembalikan pesan yang sesuai

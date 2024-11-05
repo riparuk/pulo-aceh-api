@@ -3,11 +3,12 @@ from pydantic import BaseModel, EmailStr, condecimal
 from typing import Optional, List
 
 # ------------------ User Schemas ------------------
-
+    
 class UserBase(BaseModel):
     name: str
     email: EmailStr
-    is_admin: bool
+    is_admin: bool = False
+    photo_url: Optional[str] = None
     
 class PlaceBase(BaseModel):
     name: Optional[str] = None
@@ -21,14 +22,16 @@ class PlaceBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
-class UserUpdate(UserBase):
+class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
+    password: Optional[str] = None
     is_admin: Optional[bool] = None
+    is_active: Optional[bool] = None
 
 class UserResponse(UserBase):
     id: int
-    photo_url: str
+    is_active: bool
     saved_places: Optional[List[PlaceBase]] = []
 
     class Config:

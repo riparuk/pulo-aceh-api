@@ -1,11 +1,12 @@
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
-from .models import User, Place, user_place_association
+from .models import OTPVerification, User, Place, user_place_association
 from .schemas import UserCreate, PlaceCreate, UserUpdate, PlaceUpdate
 from .utils import hash_password, verify_password
 from typing import List, Optional
 import uuid
 from pathlib import Path
+from datetime import datetime, timedelta
 
 # ------------------ CRUD User ------------------
 
@@ -45,6 +46,7 @@ def update_user(db: Session, user_id: int, user: UserUpdate):
         db_user.name = user.name or db_user.name
         db_user.email = user.email or db_user.email
         db_user.is_admin = user.is_admin if user.is_admin is not None else db_user.is_admin
+        db_user.is_active = user.is_active if user.is_active is not None else db_user.is_active
         db.commit()
         db.refresh(db_user)
     return db_user
@@ -126,6 +128,36 @@ def unsave_place_from_user(db: Session, user_id: int, place_id: int):
         return user
     return {"message": "User or place not found."}
 
+# ------------------ CRUD OTP ------------------
+def create_otp(db: Session, email: str, otp: str, expires_in_minutes: int = 10):
+    expires_at = datetime.utcnow() + timedelta(minutes=expires_in_minutes)
+    db_otp = OTPVerification(email=email, otp=otp, expires_at=expires_at)
+    
+    is_existing_otp = get_otp_by_email(db, email)
+    if is_existing_otp:
+        delete_otp_by_email(db, email)
+        
+    db.add(db_otp)
+    db.commit()
+    db.refresh(db_otp)
+    return db_otp
+
+def get_otp_by_email(db: Session, email: str):
+    return db.query(OTPVerification).filter(OTPVerification.email == email).first()
+
+def verify_otp_by_email(db: Session, email: str, otp: str):
+    db_otp = db.query(OTPVerification).filter(OTPVerification.email == email).first()
+    if db_otp and db_otp.otp == otp and db_otp.expires_at > datetime.utcnow():
+        delete_otp_by_email(db, email)
+        return True
+    return False
+
+def delete_otp_by_email(db: Session, email: str):
+    db_otp = db.query(OTPVerification).filter(OTPVerification.email == email).first()
+    if db_otp:
+        db.delete(db_otp)
+        db.commit()
+    return db_otp
 # ------------------ CRUD Place ------------------
 
 def get_place_by_id(db: Session, place_id: int):

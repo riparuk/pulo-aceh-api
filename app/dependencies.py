@@ -7,6 +7,8 @@ from fastapi import Header, HTTPException
 load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
+GMAIL_EMAIL = os.getenv("GMAIL_EMAIL")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
 
 async def get_token_header(x_token: Annotated[str, Header()]):
     if x_token != "fake-super-secret-token":

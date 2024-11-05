@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 
-from app.auth.jwt import get_current_user
+from app.auth.jwt import get_current_active_user
 from app.db.schemas import PlaceCreate, PlaceResponse, PlaceUpdate, UserResponse
 from app.db.crud import get_place_by_id, get_places, create_place, update_place, delete_place, update_place_image
 from app.db.database import get_db
@@ -52,7 +52,7 @@ def read_place(
 # ------------------ Create New Place ------------------
 
 @router.post("/", response_model=PlaceResponse, status_code=status.HTTP_201_CREATED)
-def create_new_place(current_user: Annotated[UserResponse, Depends(get_current_user)], place: PlaceCreate, db: Session = Depends(get_db), secret_key: str = None):
+def create_new_place(current_user: Annotated[UserResponse, Depends(get_current_active_user)], place: PlaceCreate, db: Session = Depends(get_db), secret_key: str = None):
     if secret_key != SECRET_KEY and current_user.is_admin == False:
         raise HTTPException(status_code=403, detail="Invalid secret key for admin registration and unauthorized user")
     
@@ -61,7 +61,7 @@ def create_new_place(current_user: Annotated[UserResponse, Depends(get_current_u
 # ------------------ Update Place ------------------
 
 @router.put("/{place_id}", response_model=PlaceResponse)
-def update_existing_place(current_user: Annotated[UserResponse, Depends(get_current_user)], place_id: int, place: PlaceUpdate, db: Session = Depends(get_db), secret_key: str = None):
+def update_existing_place(current_user: Annotated[UserResponse, Depends(get_current_active_user)], place_id: int, place: PlaceUpdate, db: Session = Depends(get_db), secret_key: str = None):
     if secret_key != SECRET_KEY and current_user.is_admin == False:
         raise HTTPException(status_code=403, detail="Invalid secret key for admin registration and unauthorized user")
     
@@ -75,7 +75,7 @@ def update_existing_place(current_user: Annotated[UserResponse, Depends(get_curr
 
 @router.put("/{place_id}/image", response_model=PlaceResponse)
 def update_image_place(
-    current_user: Annotated[UserResponse, Depends(get_current_user)],
+    current_user: Annotated[UserResponse, Depends(get_current_active_user)],
     place_id: int,
     image: Annotated[UploadFile, File(description="A File containing an image")],
     db: Session = Depends(get_db),
@@ -94,7 +94,7 @@ def update_image_place(
 # ------------------ Delete Place ------------------
 
 @router.delete("/{place_id}", response_model=PlaceResponse)
-def delete_existing_place(current_user: Annotated[UserResponse, Depends(get_current_user)], place_id: int, db: Session = Depends(get_db), secret_key: str = None):
+def delete_existing_place(current_user: Annotated[UserResponse, Depends(get_current_active_user)], place_id: int, db: Session = Depends(get_db), secret_key: str = None):
     if secret_key != SECRET_KEY and current_user.is_admin == False:
         raise HTTPException(status_code=403, detail="Invalid secret key for admin registration and unauthorized user")
     

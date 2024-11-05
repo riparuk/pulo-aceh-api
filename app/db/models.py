@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, Numeric, String, Table
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, Numeric, String, Table
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -18,6 +18,7 @@ class User(Base):
     hashed_password = Column(String)
     is_admin = Column(Boolean, default=False)
     photo_url = Column(String, nullable=True)
+    is_active = Column(Boolean, default=False)
 
     saved_places = relationship('Place', secondary=user_place_association, back_populates='users')
     
@@ -36,3 +37,10 @@ class Place(Base):
 
     # Back reference to users who saved this place
     users = relationship('User', secondary=user_place_association, back_populates='saved_places')
+    
+class OTPVerification(Base):
+    __tablename__ = 'otp_verifications'
+
+    email = Column(String, primary_key=True, index=True)
+    otp = Column(String)  # Simpan hash OTP, bukan teks asli
+    expires_at = Column(DateTime)
