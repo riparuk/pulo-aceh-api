@@ -77,8 +77,8 @@ def register(user: UserCreate, db: Session = Depends(get_db), secret_key: str = 
     except HTTPException as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
-# ------------------ change Password ------------------
-@router.post("/auth/change-password-otp", status_code=status.HTTP_201_CREATED)
+# ------------------ forget password with otp ------------------
+@router.post("/auth/forget-password-otp", status_code=status.HTTP_201_CREATED)
 def change_password_with_otp(email: str, new_password: str, otp: str, db: Session = Depends(get_db)):
     try:
         is_verified = verify_otp_by_email(db, email, otp)
@@ -93,6 +93,7 @@ def change_password_with_otp(email: str, new_password: str, otp: str, db: Sessio
         return update_user(db=db, user_id=user.id, user=UserUpdate(password=new_password))
     except HTTPException as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
+    
     
 # ------------------ Login User ------------------
 @router.post("/auth/login", response_model=Token)
@@ -128,10 +129,6 @@ async def update_profile_photo(
     current_user: Annotated[UserResponse, Depends(get_current_active_user)],
     db: Session = Depends(get_db)
 ):
-
-    db_user = get_user_by_id(db=db, user_id=current_user.id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
     
     # Assuming you have a function to handle photo update
     updated_user = update_user_photo(db=db, user_id=current_user.id, photo=photo)
@@ -144,13 +141,23 @@ def update_current_user(user: UserUpdateProfile, current_user: Annotated[UserRes
     if user.is_admin:
         if secret_key != SECRET_KEY:
             raise HTTPException(status_code=403, detail="Invalid secret key for admin editing")
-        
-    db_user = get_user_by_id(db=db, user_id=current_user.id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
     
     return update_user(db=db, user_id=current_user.id, user=UserUpdate(**user.model_dump()))
 
+# ------------------ change me email with otp ------------------
+@router.post("/auth/me/change-email-otp", status_code=status.HTTP_201_CREATED)
+def change_email_with_otp(new_email: str, otp: str, current_user: Annotated[UserResponse, Depends(get_current_active_user)], db: Session = Depends(get_db)):
+    
+    try:
+        is_verified = verify_otp_by_email(db, new_email, otp)
+        
+        if not is_verified:
+            raise HTTPException(status_code=400, detail="Invalid OTP")
+        
+        return update_user(db=db, user_id=current_user.id, user=UserUpdate(email=new_email))
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    
 # ------------------ Delete User ------------------
 
 @router.delete("/{user_id}", response_model=UserResponse)
