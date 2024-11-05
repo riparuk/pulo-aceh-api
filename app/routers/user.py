@@ -78,8 +78,8 @@ def register(user: UserCreate, db: Session = Depends(get_db), secret_key: str = 
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
 # ------------------ change Password ------------------
-@router.post("/auth/change-password")
-def change_password(email: str, new_password: str, otp: str, db: Session = Depends(get_db)):
+@router.post("/auth/change-password-otp", status_code=status.HTTP_201_CREATED)
+def change_password_with_otp(email: str, new_password: str, otp: str, db: Session = Depends(get_db)):
     try:
         is_verified = verify_otp_by_email(db, email, otp)
         
@@ -139,7 +139,7 @@ async def update_profile_photo(
 
 # ------------------ Update User ------------------
 
-@router.put("/auth/me/update", response_model=UserResponse)
+@router.put("/auth/me", response_model=UserResponse)
 def update_current_user(user: UserUpdateProfile, current_user: Annotated[UserResponse, Depends(get_current_active_user)], db: Session = Depends(get_db), secret_key: str = None):
     if user.is_admin:
         if secret_key != SECRET_KEY:

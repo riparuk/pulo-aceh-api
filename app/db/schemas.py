@@ -31,7 +31,7 @@ class UserUpdate(BaseModel):
     
 class UserUpdateProfile(BaseModel):
     name: Optional[str] = None
-    photo_url: Optional[str] = None
+    password: Optional[str] = None
     is_admin: Optional[bool] = None
 
 class UserResponse(UserBase):
