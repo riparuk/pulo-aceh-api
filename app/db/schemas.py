@@ -1,4 +1,5 @@
 
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, condecimal
 from typing import Optional, List
 
@@ -14,12 +15,14 @@ class PlaceBase(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     location_name: Optional[str] = None
-    latitude: Optional[condecimal(max_digits=10, decimal_places=6)] = None
-    longitude: Optional[condecimal(max_digits=10, decimal_places=6)] = None
-    rating: Optional[float] = 0.0
+    latitude: Optional[condecimal(max_digits=10, decimal_places=7)] = None
+    longitude: Optional[condecimal(max_digits=10, decimal_places=7)] = None
     image_url: Optional[str] = None
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    name: str
+    email: EmailStr
+    is_admin: bool = False
     password: str
 
 class UserUpdate(BaseModel):
@@ -46,22 +49,37 @@ class UserResponse(UserBase):
 
 class PlaceCreate(PlaceBase):
     name: str
-    latitude: condecimal(max_digits=10, decimal_places=6)
-    longitude: condecimal(max_digits=10, decimal_places=6)
+    latitude: condecimal(max_digits=10, decimal_places=7)
+    longitude: condecimal(max_digits=10, decimal_places=7)
 
 class PlaceUpdate(PlaceBase):
     name: Optional[str] = None
     description: Optional[str] = None
     location_name: Optional[str] = None
-    latitude: Optional[condecimal(max_digits=10, decimal_places=6)] = None
-    longitude: Optional[condecimal(max_digits=10, decimal_places=6)] = None
-    rating: Optional[float] = None
+    latitude: Optional[condecimal(max_digits=10, decimal_places=7)] = None
+    longitude: Optional[condecimal(max_digits=10, decimal_places=7)] = None
     image_url: Optional[str] = None
 
 class PlaceResponse(PlaceBase):
     id: int
     distance: Optional[float] = None
+    average_rating: Optional[float] = 0.0
     # users: Optional[List[UserBase]] = []
+
+    class Config:
+        orm_mode = True
+
+class RatingCreate(BaseModel):
+    rating: float
+    message: Optional[str] = None
+
+class RatingResponse(BaseModel):
+    id: int
+    user_id: int
+    place_id: int
+    rating: float
+    message: Optional[str] = None
+    created_at: datetime
 
     class Config:
         orm_mode = True

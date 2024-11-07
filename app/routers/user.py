@@ -6,8 +6,8 @@ from typing import Annotated, List
 
 from app.auth.jwt import ACCESS_TOKEN_EXPIRE_MINUTES, Token, create_access_token, get_current_active_user
 from app.routers.otp import send_otp
-from app.db.schemas import UserCreate, UserResponse, UserUpdate, UserUpdateProfile
-from app.db.crud import authenticate_user, get_user_by_id, get_user_by_email, get_users, create_user, unsave_place_from_user, update_user, delete_user, save_place_to_user, update_user_photo, verify_otp_by_email
+from app.db.schemas import RatingResponse, UserCreate, UserResponse, UserUpdate, UserUpdateProfile
+from app.db.crud import authenticate_user, get_ratings_by_user, get_user_by_id, get_user_by_email, get_users, create_user, unsave_place_from_user, update_user, delete_user, save_place_to_user, update_user_photo, verify_otp_by_email
 from app.db.database import get_db
 from app.dependencies import SECRET_KEY
 
@@ -192,3 +192,8 @@ def unsave_place_from_current_user(place_id: int, current_user: Annotated[UserRe
         return result
     
     return {"message": "Place removed from user's list successfully"}
+
+# ------------------ Get User Ratings ------------------
+@router.get("/{user_id}/ratings", response_model=List[RatingResponse])
+def get_user_ratings(user_id: int, current_user: Annotated[UserResponse, Depends(get_current_active_user)], db: Session = Depends(get_db)):
+    return get_ratings_by_user(db=db, user_id=current_user.id)

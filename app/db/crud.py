@@ -1,7 +1,7 @@
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
-from .models import OTPVerification, User, Place, user_place_association
-from .schemas import UserCreate, PlaceCreate, UserUpdate, PlaceUpdate
+from .models import OTPVerification, Rating, User, Place, user_place_association
+from .schemas import RatingCreate, UserCreate, PlaceCreate, UserUpdate, PlaceUpdate
 from .utils import hash_password, verify_password
 from typing import List, Optional
 import uuid
@@ -169,7 +169,7 @@ def get_places(db: Session, skip: int = 0, limit: int = 10, search: Optional[str
     if search:
         query = query.filter(Place.name.ilike(f'%{search}%'))
     if min_rating is not None:
-        query = query.filter(Place.rating >= min_rating)
+        query = query.filter(Place.average_rating >= min_rating)
     return query.offset(skip).limit(limit).all()
 
 def create_place(db: Session, place: PlaceCreate):
@@ -179,7 +179,6 @@ def create_place(db: Session, place: PlaceCreate):
         location_name=place.location_name,
         latitude=place.latitude,
         longitude=place.longitude,
-        rating=place.rating,
         image_url=place.image_url
     )
     db.add(db_place)
@@ -195,7 +194,6 @@ def update_place(db: Session, place_id: int, place: PlaceUpdate):
         db_place.location_name = place.location_name or db_place.location_name
         db_place.latitude = place.latitude or db_place.latitude
         db_place.longitude = place.longitude or db_place.longitude
-        db_place.rating = place.rating if place.rating is not None else db_place.rating
         db_place.image_url = place.image_url or db_place.image_url
         db.commit()
         db.refresh(db_place)
@@ -226,3 +224,32 @@ def delete_place(db: Session, place_id: int):
         db.delete(db_place)
         db.commit()
     return db_place
+
+def create_rating(db: Session, user_id: int, place_id: int, rating: RatingCreate):
+    db_rating = Rating(user_id=user_id, place_id=place_id, rating=rating.rating, message=rating.message)
+    db.add(db_rating)
+    db.commit()
+    db.refresh(db_rating)
+    
+    # Update average rating for the place
+    update_average_rating(db, place_id)
+    
+    return db_rating
+
+def update_average_rating(db: Session, place_id: int):
+    ratings = db.query(Rating).filter(Rating.place_id == place_id).all()
+    if ratings:
+        average_rating = sum(r.rating for r in ratings) / len(ratings)
+        db_place = db.query(Place).filter(Place.id == place_id).first()
+        db_place.average_rating = average_rating
+        db.commit()
+        db.refresh(db_place)
+
+def get_rating_by_id(db: Session, rating_id: int):
+    return db.query(Rating).filter(Rating.id == rating_id).first()
+
+def get_ratings_by_place(db: Session, place_id: int):
+    return db.query(Rating).filter(Rating.place_id == place_id).all()
+
+def get_ratings_by_user(db: Session, user_id: int):
+    return db.query(Rating).filter(Rating.user_id == user_id).all()

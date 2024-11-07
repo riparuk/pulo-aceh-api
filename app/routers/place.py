@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from typing import Annotated, List
 
 from app.auth.jwt import get_current_active_user
-from app.db.schemas import PlaceCreate, PlaceResponse, PlaceUpdate, UserResponse
-from app.db.crud import get_place_by_id, get_places, create_place, update_place, delete_place, update_place_image
+from app.db.models import User
+from app.db.schemas import PlaceCreate, PlaceResponse, PlaceUpdate, RatingCreate, RatingResponse, UserResponse
+from app.db.crud import create_rating, get_place_by_id, get_places, create_place, get_ratings_by_place, get_ratings_by_user, update_place, delete_place, update_place_image
 from app.db.database import get_db
 from app.dependencies import SECRET_KEY
 from geopy.distance import geodesic
@@ -103,3 +104,17 @@ def delete_existing_place(current_user: Annotated[UserResponse, Depends(get_curr
         raise HTTPException(status_code=404, detail="Place not found")
     
     return delete_place(db=db, place_id=place_id)
+
+#  ------------------ Rate Place ------------------
+@router.post("/{place_id}/rate", status_code=status.HTTP_201_CREATED)
+def rate_place(place_id: int, rating: RatingCreate, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    db_place = get_place_by_id(db=db, place_id=place_id)
+    if db_place is None:
+        raise HTTPException(status_code=404, detail="Place not found")
+    
+    create_rating(db=db, user_id=current_user.id, place_id=place_id, rating=rating)
+    return {"detail": "Rating created successfully"}
+    
+@router.get("/{place_id}/ratings", response_model=List[RatingResponse])
+def get_place_ratings(place_id: int, db: Session = Depends(get_db)):
+    return get_ratings_by_place(db=db, place_id=place_id)

@@ -9,7 +9,7 @@ fake = Faker()
 url = "http://localhost:8000/places/"  # Ganti dengan endpoint yang sesuai
 
 # Token yang didapat dari proses login
-token = "Bearer YOUR_ACCESS_TOKEN"  # Ganti dengan token yang valid dari admin login
+token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYXJ1cWlyaWZhQGdtYWlsLmNvbSIsImV4cCI6MTczMDk5NzQzNn0.0cUkrEmwP_yaN22SjO3fgfijSvBo12PobpSQD5gCykM"  # Ganti dengan token yang valid dari admin login
 
 # Fungsi untuk membuat data dummy untuk PlaceCreate
 def create_dummy_place():
@@ -19,7 +19,6 @@ def create_dummy_place():
         "location_name": fake.city(),
         "latitude": float(fake.latitude()),  # Convert Decimal to float
         "longitude": float(fake.longitude()),  # Convert Decimal to float
-        "rating": random.uniform(1, 5),  # Assuming rating is a float between 1 and 5
         "image_url": fake.image_url()
     }
 
