@@ -107,4 +107,4 @@ To run the API project using Docker, follow these steps:
     - [ ] Depend login atau belum saat akses endpoint masih bug/bad logic (harus login jika butuh get_current_user, tidak bisa hanya token/key)
     - [x] User bisa kirim rating
     - [x] mengembalikan Rating berdasarkan user rating
-    - [ ] mengembalikan photo url profile dan wisata dalam bentull full path url 
+    - [ ] mengembalikan photo url profile dan wisata dalam bentull full path url (no need, frontend handling it)
