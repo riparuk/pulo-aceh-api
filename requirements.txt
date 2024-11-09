@@ -7,3 +7,4 @@ SQLAlchemy==2.0.30
 PyJWT==2.8.0
 Faker==30.6.0
 pyotp==2.9.0
+passlib==1.7.4
