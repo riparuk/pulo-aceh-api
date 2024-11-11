@@ -9,6 +9,8 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 GMAIL_EMAIL = os.getenv("GMAIL_EMAIL")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
+FASTAPI_URL = os.getenv("FASTAPI_URL", "http://localhost")
+FASTAPI_PORT = os.getenv("FASTAPI_PORT", "8000")
 
 async def get_token_header(x_token: Annotated[str, Header()]):
     if x_token != "fake-super-secret-token":
