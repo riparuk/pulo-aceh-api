@@ -48,6 +48,7 @@ def read_place(
     if db_place is None:
         raise HTTPException(status_code=404, detail="Place not found")
     
+    db_place = prepare_place_response(db_place)
     # Hitung jarak jika koordinat user diberikan
     distance = None
     if user_lat is not None and user_lon is not None:
@@ -59,7 +60,7 @@ def read_place(
     response = {column.name: getattr(db_place, column.name) for column in db_place.__table__.columns}
     response['distance'] = distance
     
-    return prepare_place_response(response)
+    return response
 
 # ------------------ Create New Place ------------------
 
