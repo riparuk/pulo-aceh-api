@@ -37,13 +37,6 @@ class UserUpdateProfile(BaseModel):
     password: Optional[str] = None
     is_admin: Optional[bool] = None
 
-class UserResponse(UserBase):
-    id: int
-    is_active: bool
-    saved_places: Optional[List[PlaceBase]] = []
-
-    class Config:
-        orm_mode = True
 
 # ------------------ Place Schemas ------------------
 
@@ -69,6 +62,14 @@ class PlaceResponse(PlaceBase):
     class Config:
         orm_mode = True
 
+class UserResponse(UserBase):
+    id: int
+    is_active: bool
+    saved_places: Optional[List[PlaceResponse]] = []
+
+    class Config:
+        orm_mode = True
+        
 class RatingCreate(BaseModel):
     rating: float
     message: Optional[str] = None

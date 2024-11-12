@@ -17,16 +17,22 @@ router = APIRouter(
     responses={404: {"description": "Not Found"}},
 )
 
+def prepare_place_response(place: PlaceResponse):
+    if place.image_url is not None:
+        place.image_url = get_full_image_url(place.image_url)
+    return place
+
+def prepare_places_response(places):
+    for place in places:
+        place = prepare_place_response(place)
+    return places
 # ------------------ Get List of Places ------------------
 
 @router.get("/", response_model=List[PlaceResponse])
 def read_places(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), search: str = None, min_rating: float = None):
     places = get_places(db=db, skip=skip, limit=limit, search=search, min_rating=min_rating)
     
-    for place in places:
-        if place.image_url is not None:
-            place.image_url = get_full_image_url(place.image_url)
-    return places
+    return prepare_places_response(places)
 
 # ------------------ Get Place by ID ------------------
 
@@ -53,10 +59,7 @@ def read_place(
     response = {column.name: getattr(db_place, column.name) for column in db_place.__table__.columns}
     response['distance'] = distance
     
-    if db_place.image_url is not None:
-        response['image_url'] = get_full_image_url(db_place.image_url)
-    
-    return response
+    return prepare_place_response(response)
 
 # ------------------ Create New Place ------------------
 
@@ -67,9 +70,7 @@ def create_new_place(current_user: Annotated[UserResponse, Depends(get_current_a
     
     db_place = create_place(db=db, place=place)
     
-    if db_place.image_url is not None:
-        db_place.image_url = get_full_image_url(db_place.image_url)
-    return db_place
+    return prepare_place_response(db_place)
 
 # ------------------ Update Place ------------------
 
@@ -87,9 +88,7 @@ def update_existing_place(current_user: Annotated[UserResponse, Depends(get_curr
     
     updated_place = update_place(db=db, place_id=place_id, place=place)
     
-    if updated_place.image_url is not None:
-        updated_place.image_url = get_full_image_url(updated_place.image_url)
-    return updated_place
+    return prepare_place_response(updated_place)
 
 # ------------------ Update Place Image ------------------
 
@@ -110,9 +109,7 @@ def update_image_place(
     
     updated_place = update_place_image(db=db, place_id=place_id, image=image)
     
-    if updated_place.image_url is not None:
-        updated_place.image_url = get_full_image_url(updated_place.image_url)
-    return updated_place
+    return prepare_place_response(updated_place)
 
 # ------------------ Delete Place ------------------
 

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated, List
 
 from app.auth.jwt import ACCESS_TOKEN_EXPIRE_MINUTES, Token, create_access_token, get_current_active_user
+from app.db.utils import get_full_image_url
 from app.routers.otp import send_otp
 from app.db.schemas import RatingResponse, UserCreate, UserResponse, UserUpdate, UserUpdateProfile
 from app.db.crud import authenticate_user, get_ratings_by_user, get_user_by_id, get_user_by_email, get_users, create_user, unsave_place_from_user, update_user, delete_user, save_place_to_user, update_user_photo, verify_otp_by_email
@@ -18,6 +19,19 @@ router = APIRouter(
     responses={404: {"description": "Not Found"}}
 )
 
+def prepare_user_response(user: UserResponse):
+    if user.photo_url is not None:
+        user.photo_url = get_full_image_url(user.photo_url)
+    
+    if user.saved_places is not None:
+        for place in user.saved_places:
+            place.image_url = get_full_image_url(place.image_url)
+    return user
+
+def prepare_users_response(users):
+    for user in users:
+        user = prepare_user_response(user)
+    return users
 # ------------------ Get List of Users ------------------
 
 @router.get("/", response_model=List[UserResponse])
@@ -26,7 +40,7 @@ def read_users(current_user: Annotated[UserResponse, Depends(get_current_active_
         raise HTTPException(status_code=403, detail="Invalid secret key for admin registration and unauthorized user")
         
     users = get_users(db=db, skip=skip, limit=limit)
-    return users
+    return prepare_users_response(users)
 
 # ------------------ Get User by ID ------------------
 
@@ -38,7 +52,8 @@ def read_user(current_user: Annotated[UserResponse, Depends(get_current_active_u
     db_user = get_user_by_id(db=db, user_id=user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    return db_user
+    
+    return prepare_user_response(db_user)
 
 # ------------------ Verify OTP ------------------
 @router.post("/auth/register/verify-otp", status_code=status.HTTP_201_CREATED)
@@ -119,7 +134,8 @@ async def login_for_access_token(
 async def get_current_user(
     current_user: Annotated[UserResponse, Depends(get_current_active_user)],
 ):
-    return current_user
+    
+    return prepare_user_response(current_user)
 
 # ------------------ Update User Profile Photo ------------------
 
@@ -132,7 +148,8 @@ async def update_profile_photo(
     
     # Assuming you have a function to handle photo update
     updated_user = update_user_photo(db=db, user_id=current_user.id, photo=photo)
-    return updated_user
+    
+    return prepare_user_response(updated_user)
 
 # ------------------ Update User ------------------
 
@@ -142,7 +159,8 @@ def update_current_user(user: UserUpdateProfile, current_user: Annotated[UserRes
         if secret_key != SECRET_KEY:
             raise HTTPException(status_code=403, detail="Invalid secret key for admin editing")
     
-    return update_user(db=db, user_id=current_user.id, user=UserUpdate(**user.model_dump()))
+    return update_user(db=db, user_id=current_user.id, user=user)
+
 
 # ------------------ change me email with otp ------------------
 @router.post("/auth/me/change-email-otp", status_code=status.HTTP_201_CREATED)
