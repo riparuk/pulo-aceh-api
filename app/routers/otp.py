@@ -51,7 +51,7 @@ def send_otp(email: str, db: Session = Depends(get_db)):
     otp = totp.now()
     try:
         # Simpan OTP di database dengan expiry 30 detik
-        create_otp(db=db, email=email, otp=otp, expires_in_minutes=1)
+        create_otp(db=db, email=email, otp=otp, expires_in_minutes=2)
     except Exception as e:
         # Cetak atau log exception yang terjadi
         print(f"An error occurred: {e}")
@@ -64,5 +64,5 @@ def send_otp(email: str, db: Session = Depends(get_db)):
     
     send_email(subject, body, recipient)
     
-    return {"message": "OTP sent successfully, 1 minutes expiry."}
+    return {"message": "OTP sent successfully, 2 minutes expiry."}
     
