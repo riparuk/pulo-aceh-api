@@ -22,8 +22,10 @@ router = APIRouter(
 @router.get("/", response_model=List[PlaceResponse])
 def read_places(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), search: str = None, min_rating: float = None):
     places = get_places(db=db, skip=skip, limit=limit, search=search, min_rating=min_rating)
+    
     for place in places:
-        place.image_url = get_full_image_url(place.image_url)
+        if place.image_url is not None:
+            place.image_url = get_full_image_url(place.image_url)
     return places
 
 # ------------------ Get Place by ID ------------------
@@ -50,7 +52,9 @@ def read_place(
     # Konversi objek SQLAlchemy ke dictionary
     response = {column.name: getattr(db_place, column.name) for column in db_place.__table__.columns}
     response['distance'] = distance
-    response['image_url'] = get_full_image_url(db_place.image_url)
+    
+    if db_place.image_url is not None:
+        response['image_url'] = get_full_image_url(db_place.image_url)
     
     return response
 
@@ -62,7 +66,9 @@ def create_new_place(current_user: Annotated[UserResponse, Depends(get_current_a
         raise HTTPException(status_code=403, detail="Invalid secret key for admin registration and unauthorized user")
     
     db_place = create_place(db=db, place=place)
-    db_place.image_url = get_full_image_url(db_place.image_url)
+    
+    if db_place.image_url is not None:
+        db_place.image_url = get_full_image_url(db_place.image_url)
     return db_place
 
 # ------------------ Update Place ------------------
@@ -72,12 +78,17 @@ def update_existing_place(current_user: Annotated[UserResponse, Depends(get_curr
     if secret_key != SECRET_KEY and current_user.is_admin == False:
         raise HTTPException(status_code=403, detail="Invalid secret key for admin registration and unauthorized user")
     
+    if place.image_url is not None:
+        raise HTTPException(status_code=400, detail="Image URL cannot be updated using this endpoint. Use /{place_id}/image instead.")
+    
     db_place = get_place_by_id(db=db, place_id=place_id)
     if db_place is None:
         raise HTTPException(status_code=404, detail="Place not found")
     
     updated_place = update_place(db=db, place_id=place_id, place=place)
-    updated_place.image_url = get_full_image_url(updated_place.image_url)
+    
+    if updated_place.image_url is not None:
+        updated_place.image_url = get_full_image_url(updated_place.image_url)
     return updated_place
 
 # ------------------ Update Place Image ------------------
@@ -98,7 +109,9 @@ def update_image_place(
         raise HTTPException(status_code=404, detail="Place not found")
     
     updated_place = update_place_image(db=db, place_id=place_id, image=image)
-    updated_place.image_url = get_full_image_url(updated_place.image_url)
+    
+    if updated_place.image_url is not None:
+        updated_place.image_url = get_full_image_url(updated_place.image_url)
     return updated_place
 
 # ------------------ Delete Place ------------------
