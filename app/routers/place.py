@@ -132,6 +132,9 @@ def rate_place(place_id: int, rating: RatingCreate, current_user: User = Depends
     if db_place is None:
         raise HTTPException(status_code=404, detail="Place not found")
     
+    if rating.rating < 0 or rating.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 0 and 5")
+    
     create_rating(db=db, user_id=current_user.id, place_id=place_id, rating=rating)
     return {"detail": "Rating created successfully"}
     
