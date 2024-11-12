@@ -129,6 +129,16 @@ async def login_for_access_token(
     )
     return Token(access_token=access_token, token_type="bearer")
 
+
+# ------------------ Refresh Token ------------------
+@router.post("/auth/refresh-token", response_model=Token)
+async def refresh_token(current_user: Annotated[UserResponse, Depends(get_current_active_user)], db: Session = Depends(get_db)) -> Token:
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": current_user.email}, expires_delta=access_token_expires
+    )
+    return Token(access_token=access_token, token_type="bearer")
+
 # ------------------ Get User Profile ------------------
 @router.get("/auth/me", response_model=UserResponse)
 async def get_current_user(
