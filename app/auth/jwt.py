@@ -13,7 +13,7 @@ from app.dependencies import SECRET_KEY
 # to get a string like this run:
 # openssl rand -hex 32
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 30 days
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/auth/login")
 
