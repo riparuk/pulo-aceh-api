@@ -1,7 +1,7 @@
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 from .models import OTPVerification, Rating, User, Place, user_place_association
-from .schemas import RatingCreate, UserCreate, PlaceCreate, UserUpdate, PlaceUpdate
+from .schemas import RatingCreate, UserCreate, PlaceCreate, UserUpdate, PlaceUpdate, UserUpdateProfile
 from .utils import hash_password, verify_password
 from typing import List, Optional
 import uuid
@@ -40,13 +40,11 @@ def authenticate_user(db: Session, email: str, password: str):
         return False
     return user
 
-def update_user(db: Session, user_id: int, user: UserUpdate):
+def update_user(db: Session, user_id: int, user: UserUpdateProfile):
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user:
         db_user.name = user.name or db_user.name
-        db_user.email = user.email or db_user.email
         db_user.is_admin = user.is_admin if user.is_admin is not None else db_user.is_admin
-        db_user.is_active = user.is_active if user.is_active is not None else db_user.is_active
         db_user.hashed_password = hash_password(user.password) if user.password else db_user.hashed_password
         db.commit()
         db.refresh(db_user)
